@@ -16,10 +16,15 @@ Préparation pour les statistiques (ex: winrates par deck).
 
 Fichier | Description
 main.py | Script principal à exécuter pour jouer une partie.
+
 gestion_des_joueurs.py | Script pour gérer la base des joueurs (ajouter/supprimer).
+
 gestion_des_decks.py | Script pour gérer les decks (ajouter/supprimer).
+
 sauvegardes/ | Dossier contenant les fichiers .json de chaque partie jouée.
+
 joueurs.json | Fichier contenant la liste des joueurs disponibles.
+
 decks.json | Fichier contenant la liste des decks disponibles.
 
 
@@ -37,6 +42,7 @@ Exécuter : python main.py
 À chaque kill, le tueur révèle sa carte-cible (physique), et la saisit dans le programme.
 
 📝 Données enregistrées
+
 À chaque partie, un fichier est sauvegardé dans sauvegardes/, contenant :
 
 Les joueurs et leurs decks,
@@ -48,6 +54,7 @@ L’ordre de mort,
 Les scores finaux.
 
 🔜 À venir
+
 Calcul automatique des winrates par deck.
 
 Classements globaux.
