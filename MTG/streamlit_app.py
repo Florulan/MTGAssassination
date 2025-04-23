@@ -1,4 +1,7 @@
 from pathlib import Path
+import streamlit as st
+
+st.title("✅ L'app charge bien !")
 
 # Préparer le contenu du script Streamlit complet
 streamlit_code = """\
