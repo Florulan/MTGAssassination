@@ -1,12 +1,13 @@
 from pathlib import Path
 
-# Génération du fichier final et propre pour l'utilisateur
-final_code = '''\
+# Préparer le contenu du script Streamlit complet
+streamlit_code = """\
 import streamlit as st
 import json
 import os
 from datetime import datetime
 
+# --- Fonctions utilitaires ---
 def charger_json(path):
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -18,6 +19,7 @@ def sauvegarder_json(data, path):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
+# --- Chargement initial ---
 joueurs_path = "joueurs.json"
 decks_path = "decks.json"
 sauvegardes_path = "sauvegardes"
@@ -28,10 +30,12 @@ if not os.path.exists(sauvegardes_path):
 joueurs = charger_json(joueurs_path)
 decks = charger_json(decks_path)
 
+# --- Interface Streamlit ---
 st.set_page_config(page_title="Assassin MTG", layout="centered")
 st.sidebar.title("Menu")
 page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "🛠️ Gérer Joueurs & Decks"])
 
+# --- PAGE 1 : Nouvelle Partie ---
 if page == "🎮 Nouvelle Partie":
     st.title("🎮 Nouvelle Partie - Assassin MTG")
     joueurs_choisis = st.multiselect("Sélectionnez les joueurs :", joueurs)
@@ -73,10 +77,10 @@ if page == "🎮 Nouvelle Partie":
             morts = st.session_state["ordre_morts"]
             scores = {}
 
-            for joueur in st.session_state["decks"]:
+            for joueur in joueurs_choisis:
                 scores[joueur] = 0
 
-            vivants = list(st.session_state["decks"].keys())
+            vivants = joueurs_choisis.copy()
             for tueur, victime, cible in kills:
                 if tueur not in vivants or victime not in vivants:
                     continue
@@ -108,6 +112,7 @@ if page == "🎮 Nouvelle Partie":
 
             st.session_state.clear()
 
+# --- PAGE 2 : Gérer Joueurs & Decks ---
 if page == "🛠️ Gérer Joueurs & Decks":
     st.title("🛠️ Gestion des Joueurs et Decks")
 
@@ -138,8 +143,9 @@ if page == "🛠️ Gérer Joueurs & Decks":
         decks.remove(deck_a_supprimer)
         sauvegarder_json(decks, decks_path)
         st.success(f"{deck_a_supprimer} supprimé.")
-'''
+"""
 
-final_path.write_text(final_code)
+# Écriture du fichier
+streamlit_file = Path("/mnt/data/streamlit_app.py")
 
-final_path.name
+streamlit_file.name  # Afficher le nom du fichier généré pour téléchargement ou exécution
