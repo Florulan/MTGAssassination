@@ -14,35 +14,26 @@ Préparation pour les statistiques (ex: winrates par deck).
 
 📁 Structure des fichiers
 
-Fichier	Description
-calcul_score_assassinVXX.py	Script principal à exécuter pour jouer une partie.
-gestion_des_joueurs.py	Script pour gérer la base des joueurs (ajouter/supprimer).
-gestion_des_decks.py	Script pour gérer les decks (ajouter/supprimer).
-sauvegardes/	Dossier contenant les fichiers .json de chaque partie jouée.
-joueurs.json	Fichier contenant la liste des joueurs disponibles.
-decks.json	Fichier contenant la liste des decks disponibles.
+Fichier | Description
+main.py | Script principal à exécuter pour jouer une partie.
+gestion_des_joueurs.py | Script pour gérer la base des joueurs (ajouter/supprimer).
+gestion_des_decks.py | Script pour gérer les decks (ajouter/supprimer).
+sauvegardes/ | Dossier contenant les fichiers .json de chaque partie jouée.
+joueurs.json | Fichier contenant la liste des joueurs disponibles.
+decks.json | Fichier contenant la liste des decks disponibles.
+
+
 🚀 Lancer une partie
+
 Configurer les joueurs
-Exécuter le script :
+Exécuter le script : python gestion_des_joueurs.py
 
-bash
-Copier
-Modifier
-python gestion_des_joueurs.py
 Configurer les decks
-Exécuter le script :
+Exécuter le script : python gestion_des_decks.py
 
-bash
-Copier
-Modifier
-python gestion_des_decks.py
 Lancer une partie
-Exécuter :
+Exécuter : python main.py
 
-bash
-Copier
-Modifier
-python main.py
 À chaque kill, le tueur révèle sa carte-cible (physique), et la saisit dans le programme.
 
 📝 Données enregistrées
