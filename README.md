@@ -14,8 +14,8 @@ Préparation pour les statistiques (ex: winrates par deck).
 
 📁 Structure des fichiers
 
-Fichier | Description
-main.py | Script principal à exécuter pour jouer une partie.
+
+calcul_score_assassinVxx.py | Script principal à exécuter pour jouer une partie.
 
 gestion_des_joueurs.py | Script pour gérer la base des joueurs (ajouter/supprimer).
 
