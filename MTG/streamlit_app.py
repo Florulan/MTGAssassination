@@ -140,7 +140,6 @@ if page == "🛠️ Gérer Joueurs & Decks":
         st.success(f"{deck_a_supprimer} supprimé.")
 '''
 
-final_path = Path("/mnt/data/streamlit_app.py")
 final_path.write_text(final_code)
 
 final_path.name
