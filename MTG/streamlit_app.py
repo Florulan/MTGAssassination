@@ -1,7 +1,4 @@
 from pathlib import Path
-import streamlit as st
-
-st.title("✅ L'app charge bien !")
 
 # Préparer le contenu du script Streamlit complet
 streamlit_code = """\
@@ -150,6 +147,5 @@ if page == "🛠️ Gérer Joueurs & Decks":
 
 # Écriture du fichier
 streamlit_file = Path("/mnt/data/streamlit_app.py")
-
 
 streamlit_file.name  # Afficher le nom du fichier généré pour téléchargement ou exécution
