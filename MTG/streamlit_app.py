@@ -1,46 +1,62 @@
 import streamlit as st
-import json
-import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import json
 
-def charger_json(path):
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+# Configuration Google Sheets
+SHEET_NAME = "mtg-assassin-data"
+GOOGLE_CREDENTIALS_FILE = "google_service_account.json"
 
-def sauvegarder_json(data, path):
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
+creds = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CREDENTIALS_FILE, scope)
+client = gspread.authorize(creds)
 
-def charger_score_total():
-    try:
-        with open("ScoreTotal.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+# Accès aux onglets
+sheet_joueurs = client.open(SHEET_NAME).worksheet("Joueurs")
+sheet_decks = client.open(SHEET_NAME).worksheet("Decks")
+sheet_scores = client.open(SHEET_NAME).worksheet("ScoreFinal")
 
-def sauvegarder_score_total(score_total):
-    with open("ScoreTotal.json", "w", encoding="utf-8") as f:
-        json.dump(score_total, f, ensure_ascii=False, indent=4)
+def get_col_values(sheet):
+    return [cell.strip() for cell in sheet.col_values(1) if cell.strip()]
 
-joueurs_path = "joueurs.json"
-decks_path = "decks.json"
-sauvegardes_path = "sauvegardes"
+def get_joueurs():
+    return get_col_values(sheet_joueurs)
 
-if not os.path.exists(sauvegardes_path):
-    os.makedirs(sauvegardes_path)
+def get_decks():
+    return get_col_values(sheet_decks)
 
-joueurs = charger_json(joueurs_path)
-decks = charger_json(decks_path)
+def get_score_total():
+    data = sheet_scores.get_all_records()
+    return {row['Joueur']: {"total_points": int(row['Total Points']), "games_played": int(row['Games Played'])} for row in data}
 
+def update_score_total(scores):
+    current = get_score_total()
+    for joueur, points in scores.items():
+        if joueur in current:
+            current[joueur]['total_points'] += points
+            current[joueur]['games_played'] += 1
+        else:
+            current[joueur] = {"total_points": points, "games_played": 1}
+    # Réécriture complète
+    sheet_scores.clear()
+    sheet_scores.append_row(["Joueur", "Total Points", "Games Played"])
+    for joueur, data in current.items():
+        sheet_scores.append_row([joueur, data['total_points'], data['games_played']])
+
+# Interface Streamlit
 st.set_page_config(page_title="Assassin MTG", layout="centered")
 st.sidebar.title("Menu")
-page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "🛠️ Gérer Joueurs & Decks"])
+page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "📊 Classement global"])
 
 if page == "🎮 Nouvelle Partie":
     st.title("🎮 Nouvelle Partie - Assassin MTG")
+    joueurs = get_joueurs()
+    decks = get_decks()
+
     joueurs_choisis = st.multiselect("Sélectionnez les joueurs :", joueurs)
     decks_par_joueur = {}
 
@@ -78,10 +94,7 @@ if page == "🎮 Nouvelle Partie":
             st.subheader("🎉 Fin de partie")
             kills = st.session_state["kills"]
             morts = st.session_state["ordre_morts"]
-            scores = {}
-
-            for joueur in st.session_state["decks"]:
-                scores[joueur] = 0
+            scores = {joueur: 0 for joueur in st.session_state["decks"]}
 
             vivants = list(st.session_state["decks"].keys())
             for tueur, victime, cible in kills:
@@ -98,72 +111,31 @@ if page == "🎮 Nouvelle Partie":
             for i, joueur in enumerate(morts):
                 scores[joueur] += i + 1
 
-            # Leader bonus
-            score_total = charger_score_total()
-            if score_total:
-                leader = max(score_total.items(), key=lambda x: x[1]["total_points"])[0]
-            else:
-                leader = None
-
+            # Bonus leader
+            score_total = get_score_total()
+            leader = max(score_total.items(), key=lambda x: x[1]['total_points'])[0] if score_total else None
             if leader:
                 for tueur, victime, _ in kills:
                     if victime == leader:
-                        scores[tueur] += 1  # bonus pour avoir tué le leader
+                        scores[tueur] += 1
 
-            for joueur in scores:
-                pts = scores[joueur]
-                if joueur not in score_total:
-                    score_total[joueur] = {"total_points": 0, "games_played": 0}
-                score_total[joueur]["total_points"] += pts
-                score_total[joueur]["games_played"] += 1
-
-            sauvegarder_score_total(score_total)
+            update_score_total(scores)
 
             st.write("## Scores finaux")
             for joueur, score in scores.items():
                 st.write(f"**{joueur}** ({st.session_state['decks'][joueur]}) : {score} points")
 
-            partie = {
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "kills_order": kills,
-                "ordre_morts": morts,
-                "scores": scores,
-                "decks": st.session_state["decks"]
-            }
-            nom_fichier = f"sauvegardes/partie_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            sauvegarder_json(partie, nom_fichier)
-            st.success(f"Partie sauvegardée dans `{nom_fichier}`")
+            st.success("✅ Scores enregistrés dans ScoreFinal")
 
             st.session_state.clear()
 
-if page == "🛠️ Gérer Joueurs & Decks":
-    st.title("🛠️ Gestion des Joueurs et Decks")
+elif page == "📊 Classement global":
+    st.title("📊 Classement général")
+    scores = get_score_total()
 
-    st.subheader("👤 Joueurs")
-    nouveau_joueur = st.text_input("Ajouter un joueur")
-    if st.button("Ajouter joueur"):
-        if nouveau_joueur and nouveau_joueur not in joueurs:
-            joueurs.append(nouveau_joueur)
-            sauvegarder_json(joueurs, joueurs_path)
-            st.success(f"{nouveau_joueur} ajouté.")
-
-    joueur_a_supprimer = st.selectbox("Supprimer un joueur :", joueurs) if joueurs else None
-    if st.button("Supprimer joueur") and joueur_a_supprimer:
-        joueurs.remove(joueur_a_supprimer)
-        sauvegarder_json(joueurs, joueurs_path)
-        st.success(f"{joueur_a_supprimer} supprimé.")
-
-    st.subheader("📦 Decks")
-    nouveau_deck = st.text_input("Ajouter un deck")
-    if st.button("Ajouter deck"):
-        if nouveau_deck and nouveau_deck not in decks:
-            decks.append(nouveau_deck)
-            sauvegarder_json(decks, decks_path)
-            st.success(f"{nouveau_deck} ajouté.")
-
-    deck_a_supprimer = st.selectbox("Supprimer un deck :", decks) if decks else None
-    if st.button("Supprimer deck") and deck_a_supprimer:
-        decks.remove(deck_a_supprimer)
-        sauvegarder_json(decks, decks_path)
-        st.success(f"{deck_a_supprimer} supprimé.")
-
+    if not scores:
+        st.info("Aucun score enregistré pour l'instant.")
+    else:
+        classement = sorted(scores.items(), key=lambda x: x[1]['total_points'], reverse=True)
+        for joueur, data in classement:
+            st.write(f"**{joueur}** — {data['total_points']} pts en {data['games_played']} parties")
