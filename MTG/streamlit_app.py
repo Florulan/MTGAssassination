@@ -1,11 +1,3 @@
-from pathlib import Path
-
-# Préparer le contenu du script Streamlit complet
-
-from pathlib import Path
-
-# Contenu complet du fichier streamlit_app.py mis à jour avec le système de leader
-final_leader_code = '''\
 import streamlit as st
 import json
 import os
@@ -174,10 +166,4 @@ if page == "🛠️ Gérer Joueurs & Decks":
         decks.remove(deck_a_supprimer)
         sauvegarder_json(decks, decks_path)
         st.success(f"{deck_a_supprimer} supprimé.")
-'''
 
-# Enregistre dans un fichier propre
-final_leader_path = Path("/mnt/data/streamlit_app.py")
-final_leader_path.write_text(final_leader_code, encoding="utf-8")
-
-final_leader_path.name
