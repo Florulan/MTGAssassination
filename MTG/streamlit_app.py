@@ -1,13 +1,16 @@
 from pathlib import Path
 
 # Préparer le contenu du script Streamlit complet
-streamlit_code = """\
+
+from pathlib import Path
+
+# Contenu complet du fichier streamlit_app.py mis à jour avec le système de leader
+final_leader_code = '''\
 import streamlit as st
 import json
 import os
 from datetime import datetime
 
-# --- Fonctions utilitaires ---
 def charger_json(path):
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -19,7 +22,17 @@ def sauvegarder_json(data, path):
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
-# --- Chargement initial ---
+def charger_score_total():
+    try:
+        with open("ScoreTotal.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def sauvegarder_score_total(score_total):
+    with open("ScoreTotal.json", "w", encoding="utf-8") as f:
+        json.dump(score_total, f, ensure_ascii=False, indent=4)
+
 joueurs_path = "joueurs.json"
 decks_path = "decks.json"
 sauvegardes_path = "sauvegardes"
@@ -30,12 +43,10 @@ if not os.path.exists(sauvegardes_path):
 joueurs = charger_json(joueurs_path)
 decks = charger_json(decks_path)
 
-# --- Interface Streamlit ---
 st.set_page_config(page_title="Assassin MTG", layout="centered")
 st.sidebar.title("Menu")
 page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "🛠️ Gérer Joueurs & Decks"])
 
-# --- PAGE 1 : Nouvelle Partie ---
 if page == "🎮 Nouvelle Partie":
     st.title("🎮 Nouvelle Partie - Assassin MTG")
     joueurs_choisis = st.multiselect("Sélectionnez les joueurs :", joueurs)
@@ -77,10 +88,10 @@ if page == "🎮 Nouvelle Partie":
             morts = st.session_state["ordre_morts"]
             scores = {}
 
-            for joueur in joueurs_choisis:
+            for joueur in st.session_state["decks"]:
                 scores[joueur] = 0
 
-            vivants = joueurs_choisis.copy()
+            vivants = list(st.session_state["decks"].keys())
             for tueur, victime, cible in kills:
                 if tueur not in vivants or victime not in vivants:
                     continue
@@ -94,6 +105,27 @@ if page == "🎮 Nouvelle Partie":
 
             for i, joueur in enumerate(morts):
                 scores[joueur] += i + 1
+
+            # Leader bonus
+            score_total = charger_score_total()
+            if score_total:
+                leader = max(score_total.items(), key=lambda x: x[1]["total_points"])[0]
+            else:
+                leader = None
+
+            if leader:
+                for tueur, victime, _ in kills:
+                    if victime == leader:
+                        scores[tueur] += 1  # bonus pour avoir tué le leader
+
+            for joueur in scores:
+                pts = scores[joueur]
+                if joueur not in score_total:
+                    score_total[joueur] = {"total_points": 0, "games_played": 0}
+                score_total[joueur]["total_points"] += pts
+                score_total[joueur]["games_played"] += 1
+
+            sauvegarder_score_total(score_total)
 
             st.write("## Scores finaux")
             for joueur, score in scores.items():
@@ -112,7 +144,6 @@ if page == "🎮 Nouvelle Partie":
 
             st.session_state.clear()
 
-# --- PAGE 2 : Gérer Joueurs & Decks ---
 if page == "🛠️ Gérer Joueurs & Decks":
     st.title("🛠️ Gestion des Joueurs et Decks")
 
@@ -143,9 +174,10 @@ if page == "🛠️ Gérer Joueurs & Decks":
         decks.remove(deck_a_supprimer)
         sauvegarder_json(decks, decks_path)
         st.success(f"{deck_a_supprimer} supprimé.")
-"""
+'''
 
-# Écriture du fichier
-streamlit_file = Path("/mnt/data/streamlit_app.py")
+# Enregistre dans un fichier propre
+final_leader_path = Path("/mnt/data/streamlit_app.py")
+final_leader_path.write_text(final_leader_code, encoding="utf-8")
 
-streamlit_file.name  # Afficher le nom du fichier généré pour téléchargement ou exécution
+final_leader_path.name
