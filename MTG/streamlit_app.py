@@ -6,8 +6,6 @@ from datetime import datetime
 
 # Configuration Google Sheets
 SHEET_NAME = "mtg-assassin-data"
-GOOGLE_CREDENTIALS_FILE = "google_service_account.json"
-
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
@@ -62,7 +60,7 @@ def enregistrer_historique(date, joueurs, decks, kills, bonus, placements, score
 # Interface Streamlit
 st.set_page_config(page_title="Assassin MTG", layout="centered")
 st.sidebar.title("Menu")
-page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "📊 Classement global"])
+page = st.sidebar.radio("Navigation", ["🎮 Nouvelle Partie", "📊 Classement global", "🛠️ Gérer Joueurs & Decks"])
 
 if page == "🎮 Nouvelle Partie":
     st.title("🎮 Nouvelle Partie - Assassin MTG")
@@ -166,3 +164,48 @@ elif page == "📊 Classement global":
         classement = sorted(scores.items(), key=lambda x: x[1]['total_points'], reverse=True)
         for joueur, data in classement:
             st.write(f"**{joueur}** — {data['total_points']} pts en {data['games_played']} parties")
+
+elif page == "🛠️ Gérer Joueurs & Decks":
+    st.title("🛠️ Gestion des Joueurs et Decks")
+
+    st.subheader("👤 Joueurs")
+    nouveau_joueur = st.text_input("Ajouter un joueur")
+    if st.button("Ajouter joueur"):
+        if nouveau_joueur:
+            existing = get_joueurs()
+            if nouveau_joueur not in existing:
+                sheet_joueurs.append_row([nouveau_joueur])
+                st.success(f"{nouveau_joueur} ajouté.")
+            else:
+                st.warning("Ce joueur existe déjà.")
+
+    joueurs_existants = get_joueurs()
+    joueur_a_supprimer = st.selectbox("Supprimer un joueur :", joueurs_existants) if joueurs_existants else None
+    if st.button("Supprimer joueur") and joueur_a_supprimer:
+        all_data = sheet_joueurs.get_all_values()
+        updated = [row for row in all_data if row[0] != joueur_a_supprimer]
+        sheet_joueurs.clear()
+        for row in updated:
+            sheet_joueurs.append_row(row)
+        st.success(f"{joueur_a_supprimer} supprimé.")
+
+    st.subheader("📦 Decks")
+    nouveau_deck = st.text_input("Ajouter un deck")
+    if st.button("Ajouter deck"):
+        if nouveau_deck:
+            existing = get_decks()
+            if nouveau_deck not in existing:
+                sheet_decks.append_row([nouveau_deck])
+                st.success(f"{nouveau_deck} ajouté.")
+            else:
+                st.warning("Ce deck existe déjà.")
+
+    decks_existants = get_decks()
+    deck_a_supprimer = st.selectbox("Supprimer un deck :", decks_existants) if decks_existants else None
+    if st.button("Supprimer deck") and deck_a_supprimer:
+        all_data = sheet_decks.get_all_values()
+        updated = [row for row in all_data if row[0] != deck_a_supprimer]
+        sheet_decks.clear()
+        for row in updated:
+            sheet_decks.append_row(row)
+        st.success(f"{deck_a_supprimer} supprimé.")
