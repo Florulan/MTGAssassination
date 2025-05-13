@@ -19,6 +19,7 @@ client = gspread.authorize(creds)
 sheet_joueurs = client.open(SHEET_NAME).worksheet("Joueurs")
 sheet_decks = client.open(SHEET_NAME).worksheet("Decks")
 sheet_scores = client.open(SHEET_NAME).worksheet("ScoreFinal")
+sheet_historique = client.open(SHEET_NAME).worksheet("Historique")
 
 def get_col_values(sheet):
     return [cell.strip() for cell in sheet.col_values(1) if cell.strip()]
@@ -41,11 +42,21 @@ def update_score_total(scores):
             current[joueur]['games_played'] += 1
         else:
             current[joueur] = {"total_points": points, "games_played": 1}
-    # Réécriture complète
     sheet_scores.clear()
     sheet_scores.append_row(["Joueur", "Total Points", "Games Played"])
     for joueur, data in current.items():
         sheet_scores.append_row([joueur, data['total_points'], data['games_played']])
+
+def enregistrer_historique(date, joueurs, decks, kills, bonus, placements, scores):
+    sheet_historique.append_row([
+        date,
+        json.dumps(joueurs),
+        json.dumps(decks),
+        json.dumps(kills),
+        json.dumps(bonus),
+        json.dumps(placements),
+        json.dumps(scores)
+    ])
 
 # Interface Streamlit
 st.set_page_config(page_title="Assassin MTG", layout="centered")
@@ -95,6 +106,7 @@ if page == "🎮 Nouvelle Partie":
             kills = st.session_state["kills"]
             morts = st.session_state["ordre_morts"]
             scores = {joueur: 0 for joueur in st.session_state["decks"]}
+            bonus = {joueur: 0 for joueur in st.session_state["decks"]}
 
             vivants = list(st.session_state["decks"].keys())
             for tueur, victime, cible in kills:
@@ -102,22 +114,26 @@ if page == "🎮 Nouvelle Partie":
                     continue
                 if cible == tueur:
                     scores[tueur] += 2
+                    bonus[tueur] += 2
                 elif cible == victime:
                     scores[tueur] += 4
+                    bonus[tueur] += 4
                 else:
                     scores[tueur] += 1
+                    bonus[tueur] += 1
                 vivants.remove(victime)
 
             for i, joueur in enumerate(morts):
                 scores[joueur] += i + 1
+                bonus[joueur] += i + 1
 
-            # Bonus leader
             score_total = get_score_total()
             leader = max(score_total.items(), key=lambda x: x[1]['total_points'])[0] if score_total else None
             if leader:
                 for tueur, victime, _ in kills:
                     if victime == leader:
                         scores[tueur] += 1
+                        bonus[tueur] += 1
 
             update_score_total(scores)
 
@@ -125,8 +141,18 @@ if page == "🎮 Nouvelle Partie":
             for joueur, score in scores.items():
                 st.write(f"**{joueur}** ({st.session_state['decks'][joueur]}) : {score} points")
 
-            st.success("✅ Scores enregistrés dans ScoreFinal")
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            enregistrer_historique(
+                date,
+                joueurs_choisis,
+                st.session_state["decks"],
+                kills,
+                bonus,
+                morts,
+                scores
+            )
 
+            st.success("✅ Partie enregistrée avec succès dans l'historique.")
             st.session_state.clear()
 
 elif page == "📊 Classement global":
